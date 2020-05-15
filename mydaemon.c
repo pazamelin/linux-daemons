@@ -15,6 +15,9 @@
 #include <linux/fs.h>
 #include <time.h>
 
+#include <semaphore.h>
+#define SEMAPHORE_NAME "/mutex1"
+
 #include "request.h"
 
 _Bool flag_sigint = 1;
@@ -72,6 +75,9 @@ int setTimer(const struct Request* this)
 
 void execute(const struct Request* request)
 {   /* request execution */
+    /* opening and locking the existing named semaphore */
+    sem_t* sem = sem_open(SEMAPHORE_NAME, 0);
+    sem_wait(sem);
 
     pid_t pid = fork();
     if(pid == 0)
@@ -91,16 +97,24 @@ void execute(const struct Request* request)
     }
     else if(pid > 0)
     {   /* parent */
-
+        /* waiting the child process to end*/
+        wait(0);
+        /* unlocking and closing the semaphore */
+        sem_post(sem);
+        sem_close(sem);
     }
     else
     {
         logmessage(LOG_ERR, "Cannot fork process!:\n");
+        sem_post(sem);
+        sem_close(sem);
     }
 }
 
 void cdaemon(int argc, char* argv[])
 {
+    /* creating a named semaphore */
+    sem_t *sem = sem_open(SEMAPHORE_NAME, O_CREAT, S_IRWXU, 1);
 
     /* opening a connection to the system logger */
     openlog("DAEMON", LOG_PID, LOG_DAEMON);
@@ -125,10 +139,10 @@ void cdaemon(int argc, char* argv[])
         exit(EXIT_FAILURE);
     }
 
-    /* position in the input file and a ptr to current request */
+     /* position in the input file and a ptr to current request */
     size_t seekshift = 0;
     struct Request* request = NULL;
-    
+
     /* the daemon's endless loop */
     while(!terminate)
     {
@@ -158,6 +172,9 @@ void cdaemon(int argc, char* argv[])
             /* freeing memory occupied by recently executed request */
             freeRequest(request);
 
+            /* entering the critical section - locking the binary semaphore */
+            sem_wait(sem);
+
             /* setting a new request */
             if(setRequest(&request, argv[1], &seekshift) == FAILURE)
             {
@@ -168,6 +185,10 @@ void cdaemon(int argc, char* argv[])
             /* a new request has been set */
             /* setting a timer for the request */
             setTimer(request);
+
+            /*exiting the critical section - unlocking the binary semaphore */
+            sem_post(sem);
+
         }
 
         /* waiting for an any signal */
@@ -176,6 +197,10 @@ void cdaemon(int argc, char* argv[])
 
     if(terminate)
     {
+        /* closing the semaphore and removing it's name from the system */
+        sem_close(sem);
+        sem_unlink(SEMAPHORE_NAME);
+
         logmessage(LOG_ERR, "Caught SIGTERM\n");
         exit(EXIT_SUCCESS);
     }
@@ -194,11 +219,12 @@ void daemonize()
     }
 
     /* setting the working directory to the root directory */
+    /*
     if(chdir("/") == -1)
     {
         exit(EXIT_FAILURE);
     }
-
+     */
     /* closing all open file descriptors */
     int x;
     for (x = sysconf(_SC_OPEN_MAX); x>=0; x--)
@@ -217,7 +243,7 @@ int main(int argc, char* argv[])
     /* daemon usage: */
     if (argc != 2)
     {
-        printf("use $ ./my_daemon input.txt\n");
+        printf("use $ ./my_daemon filename.cfg\n");
         exit(EXIT_FAILURE);
     }
 
@@ -233,7 +259,6 @@ int main(int argc, char* argv[])
         /* daemonizing the child process */
         daemonize();
 
-        /* daemon prototype: */
         cdaemon(argc, argv);
     }
     else
