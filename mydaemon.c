@@ -125,21 +125,49 @@ void cdaemon(int argc, char* argv[])
         exit(EXIT_FAILURE);
     }
 
+    /* position in the input file and a ptr to current request */
+    size_t seekshift = 0;
+    struct Request* request = NULL;
+    
     /* the daemon's endless loop */
     while(!terminate)
     {
         if(flag_sigint)
         {   /* caught SIGINT */
+            /* set new request from the very start of the config file */
             logmessage(LOG_INFO, "caught SIGINT\n");
             flag_sigint = 0;
 
-            /* ... */
+            /* setting a new request */
+            seekshift = 0;
+            if(setRequest(&request, argv[1], &seekshift) == FAILURE)
+            {
+                logmessage(LOG_INFO, "no requests!\n");
+                exit(EXIT_FAILURE);
+            }
+            /* a new request has been set */
+            /* setting a timer for the request */
+            setTimer(request);
         }
         if(flag_sigalrm)
         {   /* caught SIGALRM */
+            /* execute current request and set a new one */
             flag_sigalrm = 0;
 
-            /* ... */
+            execute(request);
+            /* freeing memory occupied by recently executed request */
+            freeRequest(request);
+
+            /* setting a new request */
+            if(setRequest(&request, argv[1], &seekshift) == FAILURE)
+            {
+                logmessage(LOG_INFO, "no requests!\n");
+                terminate = 1;
+                break;
+            }
+            /* a new request has been set */
+            /* setting a timer for the request */
+            setTimer(request);
         }
 
         /* waiting for an any signal */
