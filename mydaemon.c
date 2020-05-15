@@ -1,16 +1,27 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/file.h>
+#include <execinfo.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include <signal.h>
 #include <unistd.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <syslog.h>
+#include <wait.h>
+#include <linux/fs.h>
+#include <time.h>
+
+#include "request.h"
 
 _Bool flag_sigint = 1;
 _Bool flag_sigalrm = 0;
 _Bool terminate = 0;
+#define SUCCESS 0
+#define FAILURE -1
 
 #define LOG_FILE_NAME "log.txt"
 
@@ -36,6 +47,56 @@ void logmessage(int priority, const char* message)
     close(logfile_d);
 
     syslog(priority, "%s", message);
+}
+
+int setTimer(const struct Request* this)
+{
+    /* getting the current time */
+    time_t rawtime = time(NULL);
+    struct tm * curtime;
+    curtime = localtime(&rawtime);
+
+    /* calculating the difference between the request's time and the current time */
+    size_t curtime_min = curtime->tm_min + curtime->tm_hour * 60;
+    size_t reqtime_min = this->min+ this->hour * 60;
+    ssize_t diff_min = reqtime_min - curtime_min;
+
+    if(diff_min < 0)
+    {   /* it could be more properly handled somehow */
+        diff_min += 60*24;
+    }
+    /* setting the timer in seconds */
+    alarm(diff_min * 60);
+    return SUCCESS;
+}
+
+void execute(const struct Request* request)
+{   /* request execution */
+
+    pid_t pid = fork();
+    if(pid == 0)
+    {   /* child process */
+
+        int log_fd = open(LOG_FILE_NAME, O_CREAT|O_APPEND|O_RDWR, S_IRWXU);
+        /* changing std file descriptors to log_fd*/
+        dup2(log_fd, STDOUT_FILENO);
+        dup2(log_fd, STDERR_FILENO);
+        close(log_fd);
+
+        char* logbuf = (char*)malloc(sizeof(char) * 256);
+        sprintf(logbuf, "command %s is being executed:\n", request->command);
+        logmessage(LOG_INFO, logbuf);
+        /* executing the request's programme */
+        execve(request->command, request->argv, NULL);
+    }
+    else if(pid > 0)
+    {   /* parent */
+
+    }
+    else
+    {
+        logmessage(LOG_ERR, "Cannot fork process!:\n");
+    }
 }
 
 void cdaemon(int argc, char* argv[])
@@ -153,3 +214,4 @@ int main(int argc, char* argv[])
     }
     return 0;
 }
+
