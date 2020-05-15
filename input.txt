@@ -1,0 +1,2 @@
+14:15 /bin/ls ls -l
+14:16 /bin/ls ls -h
