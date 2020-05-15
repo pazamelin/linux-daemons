@@ -1,12 +1,96 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <signal.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <syslog.h>
 
+_Bool flag_sigint = 1;
+_Bool flag_sigalrm = 0;
+_Bool terminate = 0;
 
-void cdaemon(int argc, char* argv[]);
+#define LOG_FILE_NAME "log.txt"
+
+static void sigint_handler(int signo)
+{   /* caught SIGINT */
+    flag_sigint = 1;
+}
+
+static void sigterm_handler(int signo)
+{   /* caught SIGTERM */
+    terminate = 1;
+}
+
+static void sigalrm_handler(int signo)
+{   /* caught SIGALRM */
+    flag_sigalrm = 1;
+}
+
+void logmessage(int priority, const char* message)
+{
+    int logfile_d = open(LOG_FILE_NAME, O_CREAT|O_APPEND|O_RDWR, S_IRWXU);
+    write(logfile_d, message, strlen(message));
+    close(logfile_d);
+
+    syslog(priority, "%s", message);
+}
+
+void cdaemon(int argc, char* argv[])
+{
+
+    /* opening a connection to the system logger */
+    openlog("DAEMON", LOG_PID, LOG_DAEMON);
+    logmessage(LOG_INFO, "daemon started!\n");
+
+    /* registering SIGINT handler */
+    if (signal (SIGINT, sigint_handler) == SIG_ERR)
+    {
+        logmessage(LOG_ERR, "cannot handle SIGINT!\n");
+        exit(EXIT_FAILURE);
+    }
+    /* registering SIGTERM handler */
+    if (signal (SIGTERM, sigterm_handler) == SIG_ERR)
+    {
+        logmessage(LOG_ERR, "cannot handle SIGTERM!\n");
+        exit(EXIT_FAILURE);
+    }
+    /* registering SIGALRM handler */
+    if (signal (SIGALRM, sigalrm_handler) == SIG_ERR)
+    {
+        logmessage(LOG_ERR, "cannot handle SIGALRM!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    /* the daemon's endless loop */
+    while(!terminate)
+    {
+        if(flag_sigint)
+        {   /* caught SIGINT */
+            logmessage(LOG_INFO, "caught SIGINT\n");
+            flag_sigint = 0;
+
+            /* ... */
+        }
+        if(flag_sigalrm)
+        {   /* caught SIGALRM */
+            flag_sigalrm = 0;
+
+            /* ... */
+        }
+
+        /* waiting for an any signal */
+        pause();
+    }
+
+    if(terminate)
+    {
+        logmessage(LOG_ERR, "Caught SIGTERM\n");
+        exit(EXIT_SUCCESS);
+    }
+}
 
 void daemonize()
 {
