@@ -69,7 +69,7 @@ int setTimer(const struct Request* this)
         diff_min += 60*24;
     }
     /* setting the timer in seconds */
-    alarm(1);
+    alarm(diff_min * 60);
     return SUCCESS;
 }
 
@@ -77,7 +77,7 @@ void execute(const struct Request* request, _Bool* flag_fork, _Bool* flag_execut
 {   /* request execution */
     pid_t pid = fork();
     if(pid == 0)
-    {   /* child process */
+    {   /* child process is to be replaced by execve*/
 
         int log_fd = open(LOG_FILE_NAME, O_CREAT|O_APPEND|O_RDWR, S_IRWXU);
         /* changing std file descriptors to log_fd*/
@@ -90,10 +90,12 @@ void execute(const struct Request* request, _Bool* flag_fork, _Bool* flag_execut
         {
             /* command cannot be executed */
             *flag_execution = 0;
+            /* terminating child process */
+            exit(EXIT_FAILURE);
         }
     }
     else if(pid > 0)
-    {   /* parent */
+    {   /* parent - executionMonitor() */
         /* waiting the child process to end*/
         wait(0);
         return;
@@ -320,7 +322,6 @@ int main(int argc, char* argv[])
     }
     return 0;
 }
-
 
 
 
