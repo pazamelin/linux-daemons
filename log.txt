@@ -1,22 +1,26 @@
 daemon started!
 caught SIGINT
-command /bin/ls is being executed:
-total 88
+
+Command /bin/ls is being executed:
+total 92
 -rwx------ 1 unlocalhost unlocalhost  1260 May 15 02:22 1.txt
 -rw-r--r-- 1 unlocalhost unlocalhost   129 May  9 17:02 CMakeLists.txt
 -rw-r--r-- 1 unlocalhost unlocalhost   188 May 14 18:12 Makefile
 drwxr-xr-x 3 unlocalhost unlocalhost  4096 May 13 21:12 cmake-build-debug
--rwxr-xr-x 1 unlocalhost unlocalhost 22840 May 15 14:13 daemon
+-rwxr-xr-x 1 unlocalhost unlocalhost 22880 May 16 14:42 daemon
 -rw-r--r-- 1 unlocalhost unlocalhost  2553 May 14 23:27 df.log
 drwxr-xr-x 2 unlocalhost unlocalhost  4096 May  9 16:02 examples
--rw-r--r-- 1 unlocalhost unlocalhost    39 May 15 14:13 input.txt
--rwx------ 1 unlocalhost unlocalhost    65 May 15 14:15 log.txt
--rw-r--r-- 1 unlocalhost unlocalhost  6871 May 15 14:13 mydaemon.c
--rw-r--r-- 1 unlocalhost unlocalhost  7696 May 15 14:13 mydaemon.o
--rw-r--r-- 1 unlocalhost unlocalhost  2512 May 15 00:35 request.c
+-rw-r--r-- 1 unlocalhost unlocalhost    60 May 16 14:43 input.txt
+-rwx------ 1 unlocalhost unlocalhost    66 May 16 14:44 log.txt
+-rw-r--r-- 1 unlocalhost unlocalhost  7969 May 16 14:42 mydaemon.c
+-rw-r--r-- 1 unlocalhost unlocalhost  8416 May 16 14:42 mydaemon.o
+-rw-r--r-- 1 unlocalhost unlocalhost  2512 May 15 14:39 request.c
 -rw-r--r-- 1 unlocalhost unlocalhost   347 May 11 20:44 request.h
--rw-r--r-- 1 unlocalhost unlocalhost  4208 May 15 00:38 request.o
-command /bin/ls is being executed:
+-rw-r--r-- 1 unlocalhost unlocalhost  4208 May 15 15:36 request.o
+Command has been executed!
+
+
+Command /bin/ls is being executed:
 1.txt
 CMakeLists.txt
 Makefile
@@ -31,5 +35,26 @@ mydaemon.o
 request.c
 request.h
 request.o
-no requests!
+Command has been executed!
+
+no new requests!
+
+Command /bin/ls is being executed:
+total 92
+-rwx------ 1 unlocalhost unlocalhost  1260 May 15 02:22 1.txt
+-rw-r--r-- 1 unlocalhost unlocalhost   129 May  9 17:02 CMakeLists.txt
+-rw-r--r-- 1 unlocalhost unlocalhost   188 May 14 18:12 Makefile
+drwxr-xr-x 3 unlocalhost unlocalhost  4096 May 13 21:12 cmake-build-debug
+-rwxr-xr-x 1 unlocalhost unlocalhost 22880 May 16 14:42 daemon
+-rw-r--r-- 1 unlocalhost unlocalhost  2553 May 14 23:27 df.log
+drwxr-xr-x 2 unlocalhost unlocalhost  4096 May  9 16:02 examples
+-rw-r--r-- 1 unlocalhost unlocalhost    60 May 16 14:43 input.txt
+-rwx------ 1 unlocalhost unlocalhost  1286 May 16 14:44 log.txt
+-rw-r--r-- 1 unlocalhost unlocalhost  7969 May 16 14:42 mydaemon.c
+-rw-r--r-- 1 unlocalhost unlocalhost  8416 May 16 14:42 mydaemon.o
+-rw-r--r-- 1 unlocalhost unlocalhost  2512 May 15 14:39 request.c
+-rw-r--r-- 1 unlocalhost unlocalhost   347 May 11 20:44 request.h
+-rw-r--r-- 1 unlocalhost unlocalhost  4208 May 15 15:36 request.o
+Command has been executed!
+
 Caught SIGTERM

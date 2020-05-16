@@ -69,16 +69,12 @@ int setTimer(const struct Request* this)
         diff_min += 60*24;
     }
     /* setting the timer in seconds */
-    alarm(diff_min * 60);
+    alarm(1);
     return SUCCESS;
 }
 
-void execute(const struct Request* request)
+void execute(const struct Request* request, _Bool* flag_fork, _Bool* flag_execution)
 {   /* request execution */
-    /* opening and locking the existing named semaphore */
-    sem_t* sem = sem_open(SEMAPHORE_NAME, 0);
-    sem_wait(sem);
-
     pid_t pid = fork();
     if(pid == 0)
     {   /* child process */
@@ -89,27 +85,79 @@ void execute(const struct Request* request)
         dup2(log_fd, STDERR_FILENO);
         close(log_fd);
 
-        char* logbuf = (char*)malloc(sizeof(char) * 256);
-        sprintf(logbuf, "command %s is being executed:\n", request->command);
-        logmessage(LOG_INFO, logbuf);
         /* executing the request's programme */
-        execve(request->command, request->argv, NULL);
+        if(execve(request->command, request->argv, NULL) == -1)
+        {
+            /* command cannot be executed */
+            *flag_execution = 0;
+        }
     }
     else if(pid > 0)
     {   /* parent */
         /* waiting the child process to end*/
         wait(0);
-        /* unlocking and closing the semaphore */
+        return;
+    }
+    else
+    {   /* cannot fork process */
+        *flag_fork = 0;
+        return;
+    }
+}
+
+void executionMonitor(const struct Request* request)
+{
+    pid_t pid = fork();
+    if(pid == 0)
+    {
+        /* the child is to monitor execution */
+
+        sem_t* sem = sem_open(SEMAPHORE_NAME, 0);
+        sem_wait(sem);
+
+        char* logbuf = (char*)malloc(sizeof(char) * 256);
+        sprintf(logbuf, "\nCommand %s is being executed:\n", request->command);
+        logmessage(LOG_INFO, logbuf);
+
+        _Bool flag_fork = 1;
+        _Bool flag_execution = 1;
+
+        execute(request, &flag_fork, &flag_execution);
+
+        if(flag_fork != 1)
+        {
+            logmessage(LOG_ERR, "Cannot fork process for execution!\n");
+            exit(EXIT_FAILURE);
+        }
+
+        if(flag_execution != 1)
+        {
+            logmessage(LOG_ERR, "Cannot execute the command!\n");
+        }
+        else
+        {
+            logmessage(LOG_ERR, "Command has been executed!\n\n");
+        }
+
         sem_post(sem);
         sem_close(sem);
+
+        /* monitor's job is done */
+        exit(EXIT_SUCCESS);
+    }
+    else if(pid > 0)
+    {
+        /* parent process is the daemon itself */
+        return;
     }
     else
     {
-        logmessage(LOG_ERR, "Cannot fork process!:\n");
-        sem_post(sem);
-        sem_close(sem);
+        logmessage(LOG_ERR, "Cannot fork process for monitor!\n");
+        exit(EXIT_FAILURE);
     }
 }
+
+
 
 void cdaemon(int argc, char* argv[])
 {
@@ -168,27 +216,28 @@ void cdaemon(int argc, char* argv[])
             /* execute current request and set a new one */
             flag_sigalrm = 0;
 
-            execute(request);
+
+            executionMonitor(request);
             /* freeing memory occupied by recently executed request */
             freeRequest(request);
-
-            /* entering the critical section - locking the binary semaphore */
-            sem_wait(sem);
 
             /* setting a new request */
             if(setRequest(&request, argv[1], &seekshift) == FAILURE)
             {
-                logmessage(LOG_INFO, "no requests!\n");
+                /* entering the critical section - locking the binary semaphore */
+                sem_wait(sem);
+
+                logmessage(LOG_INFO, "no new requests!\n");
+
+                /*exiting the critical section - unlocking the binary semaphore */
+                sem_post(sem);
                 terminate = 1;
                 break;
             }
+
             /* a new request has been set */
             /* setting a timer for the request */
             setTimer(request);
-
-            /*exiting the critical section - unlocking the binary semaphore */
-            sem_post(sem);
-
         }
 
         /* waiting for an any signal */
@@ -197,6 +246,10 @@ void cdaemon(int argc, char* argv[])
 
     if(terminate)
     {
+        /* waiting for all child processes to finish */
+        int status = 0;
+        while (wait(&status) > 0);
+
         /* closing the semaphore and removing it's name from the system */
         sem_close(sem);
         sem_unlink(SEMAPHORE_NAME);
@@ -267,4 +320,11 @@ int main(int argc, char* argv[])
     }
     return 0;
 }
+
+
+
+
+
+
+
 
