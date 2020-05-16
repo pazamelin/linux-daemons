@@ -69,7 +69,7 @@ int setTimer(const struct Request* this)
         diff_min += 60*24;
     }
     /* setting the timer in seconds */
-    alarm(1);
+    alarm(diff_min * 60);
     return SUCCESS;
 }
 
