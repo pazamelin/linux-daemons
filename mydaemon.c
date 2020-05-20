@@ -89,7 +89,6 @@ void execute(const struct Request* request, _Bool* flag_fork, _Bool* flag_execut
         if(execve(request->command, request->argv, NULL) == -1)
         {
             /* command cannot be executed */
-            *flag_execution = 0;
             /* terminating child process */
             exit(EXIT_FAILURE);
         }
@@ -97,7 +96,15 @@ void execute(const struct Request* request, _Bool* flag_fork, _Bool* flag_execut
     else if(pid > 0)
     {   /* parent - executionMonitor() */
         /* waiting the child process to end*/
-        wait(0);
+        int status = 0;
+        wait(&status);
+        if(WIFEXITED(status))
+        {
+            if(WEXITSTATUS(status) != EXIT_SUCCESS)
+            {
+                *flag_execution = 0;
+            }
+        }
         return;
     }
     else
@@ -322,10 +329,3 @@ int main(int argc, char* argv[])
     }
     return 0;
 }
-
-
-
-
-
-
-
