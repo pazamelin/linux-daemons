@@ -1,7 +1,7 @@
 # linux-daemons
 ## 1. an analogue of the cron daemon.  
 the daemon uses input config file to specify what tasks to run and when  
-[man cron.8](http://man7.org/linux/man-pages/man8/cron.8.html)
+[$ man cron.8](http://man7.org/linux/man-pages/man8/cron.8.html)
   
 ### signals:  
 * __SIGINT__  - daemon starts to execute commands from the very start of the config file  
