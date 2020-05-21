@@ -8,6 +8,6 @@ the daemon uses input config file to specify what tasks to run and when
 * __SIGTERM__ - termination of the daemon  
   
 ### use:
-* __compile__:```shellscript $ make daemon```  
-* __run__:```shellscript $ ./daemon input_config.txt```  
-* or both:```shellscript $ ./run.sh```  
+* __compile__: $ make daemon  
+* __run__: $ ./daemon input_config.txt  
+* __or both__: $ ./run.sh  
